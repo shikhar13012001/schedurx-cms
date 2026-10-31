@@ -5,6 +5,7 @@ const SECTIONS: [string, string][] = [
   ['websiteSettings', 'Website settings'],
   ['page', 'Pages'],
   ['doctor', 'Doctors'],
+  ['location', 'Locations and hours'],
   ['service', 'Services'],
   ['testimonial', 'Testimonials'],
   ['faq', 'FAQs'],

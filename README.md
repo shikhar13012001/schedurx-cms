@@ -49,6 +49,20 @@ The sync only copies the fields listed in `scripts/profile-map.mjs`. A doctor's 
 
 Internal staff get a Sanity project role. Giving a clinic's own staff access to just their clinic would need custom roles, which depend on the Sanity plan, so check that before promising it.
 
-## Campaign website
+## Campaign website (`web/`)
 
-The dashboard's campaign website has to line up with this model. Its implementation is being provided separately, and sections or settings will be adjusted to match once it's reviewed.
+The clinic site patients see, served at `/<slug>` for each Live `websiteSettings`.
+
+- `web/lib/campaign/` is the Clinic Studio renderer and model. The only change is that a site can now be indexed by search engines.
+- `web/lib/practice-from-sanity.ts` turns Sanity documents into what the renderer reads. Every field lines up here.
+- `web/lib/sanity.ts` has the query. It returns Live sites, approved testimonials with recorded permission, and approved articles.
+
+```bash
+cd web
+npm install
+cp .env.example .env.local   # fill in the project ID
+npm run dev                  # then open /<slug> of a Live site
+npm test
+```
+
+Section headings such as "A clearer path to feeling better." are still written into the renderer. The `page` documents and their sections aren't read by this site yet.

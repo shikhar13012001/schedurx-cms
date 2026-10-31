@@ -3,6 +3,7 @@ import {CogIcon} from '@sanity/icons/Cog'
 import {DocumentIcon} from '@sanity/icons/Document'
 import {DocumentTextIcon} from '@sanity/icons/DocumentText'
 import {HelpCircleIcon} from '@sanity/icons/HelpCircle'
+import {PinIcon} from '@sanity/icons/Pin'
 import {StarIcon} from '@sanity/icons/Star'
 import {TagIcon} from '@sanity/icons/Tag'
 import {ThLargeIcon} from '@sanity/icons/ThLarge'
@@ -28,15 +29,28 @@ function isUniqueInClinic(slug: string, context: any) {
 const clinicSlug = (source: string) =>
   defineField({name: 'slug', type: 'slug', options: {source, isUnique: isUniqueInClinic}, validation: (rule) => rule.required()})
 
+const CAMPAIGN_SECTIONS = [
+  {title: 'Care', value: 'care'},
+  {title: 'About the doctor', value: 'about'},
+  {title: 'Visit', value: 'visit'},
+  {title: 'Gallery', value: 'gallery'},
+  {title: 'Reviews', value: 'reviews'},
+  {title: 'FAQ', value: 'faq'},
+]
+const radio = (list: {title: string; value: string}[]) => ({layout: 'radio' as const, direction: 'horizontal' as const, list})
+
 export const websiteSettings = defineType({
   name: 'websiteSettings',
   type: 'document',
   icon: CogIcon,
   groups: [
     {name: 'address', title: 'Address', default: true},
-    {name: 'look', title: 'Branding'},
+    {name: 'look', title: 'Design'},
+    {name: 'booking', title: 'Booking'},
+    {name: 'trust', title: 'Trust'},
     {name: 'navigation', title: 'Navigation'},
     {name: 'search', title: 'SEO'},
+    {name: 'release', title: 'Permissions'},
   ],
   fields: [
     {...clinicOnce('websiteSettings'), group: 'address'},
@@ -49,24 +63,223 @@ export const websiteSettings = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({name: 'customDomain', type: 'string', group: 'address', description: 'Optional, such as drsharmaclinic.in.', validation: (rule) => rule.regex(/^[a-z0-9.-]+\.[a-z]{2,}$/).warning('Enter just the domain, with no https://.')}),
-    defineField({name: 'status', type: 'string', group: 'address', initialValue: 'draft', options: {layout: 'radio', direction: 'horizontal', list: [{title: 'Being built', value: 'draft'}, {title: 'Live', value: 'live'}, {title: 'Paused', value: 'paused'}]}, validation: (rule) => rule.required()}),
+    defineField({
+      name: 'status',
+      type: 'string',
+      group: 'address',
+      initialValue: 'draft',
+      description: 'Only a Live site can be opened by the public.',
+      options: radio([{title: 'Being built', value: 'draft'}, {title: 'Live', value: 'live'}, {title: 'Paused', value: 'paused'}]),
+      validation: (rule) =>
+        rule.required().custom((status, context: any) => {
+          if (status !== 'live') return true
+          const consent = context.document?.consent
+          return consent?.images && consent?.facts ? true : 'Confirm photo permission and the published facts, under Permissions, before going live.'
+        }),
+    }),
     defineField({name: 'siteName', type: 'string', group: 'look', validation: (rule) => rule.required()}),
     defineField({name: 'logo', type: 'altImage', group: 'look'}),
     defineField({
-      name: 'theme',
+      name: 'primaryDoctor',
+      type: 'reference',
+      to: [{type: 'doctor'}],
+      group: 'look',
+      options: sameClinic,
+      description: 'The doctor the site leads with.',
+    }),
+    defineField({
+      name: 'design',
       type: 'object',
       group: 'look',
+      options: {columns: 2},
       fields: [
-        defineField({name: 'preset', type: 'string', initialValue: 'calm', options: {list: [{title: 'Calm', value: 'calm'}, {title: 'Warm', value: 'warm'}, {title: 'Clinical', value: 'clinical'}]}}),
-        defineField({name: 'brandColour', type: 'string', description: 'A hex colour, such as #EC6B25.', validation: (rule) => rule.regex(/^#[0-9a-fA-F]{6}$/).warning('Use a hex colour like #EC6B25.')}),
+        defineField({name: 'layout', type: 'string', initialValue: 'editorial', options: {list: [{title: 'The editorial', value: 'editorial'}, {title: 'The contemporary', value: 'contemporary'}, {title: 'The personal', value: 'personal'}]}, validation: (rule) => rule.required()}),
+        defineField({name: 'theme', type: 'string', initialValue: 'forest', options: {list: [{title: 'Ivory & forest', value: 'forest'}, {title: 'Porcelain & navy', value: 'navy'}, {title: 'Linen & clay', value: 'clay'}, {title: 'Chalk & plum', value: 'plum'}, {title: 'White & petrol', value: 'petrol'}, {title: 'Stone & graphite', value: 'stone'}]}, validation: (rule) => rule.required()}),
+        defineField({name: 'font', type: 'string', initialValue: 'theme', options: {list: [{title: 'Match the theme', value: 'theme'}, {title: 'Serif', value: 'serif'}, {title: 'Sans', value: 'sans'}]}}),
+        defineField({name: 'density', type: 'string', initialValue: 'comfortable', options: {list: ['comfortable', 'compact']}}),
+        defineField({name: 'corners', type: 'string', initialValue: 'soft', options: {list: ['soft', 'square']}}),
+        defineField({name: 'portraitSide', type: 'string', initialValue: 'right', options: {list: ['right', 'left']}}),
+        defineField({name: 'customAccent', type: 'string', description: 'Optional hex colour, such as #285B49.', validation: (rule) => rule.regex(/^#[0-9a-fA-F]{6}$/).warning('Use a hex colour like #285B49.')}),
+        defineField({name: 'showBrand', type: 'boolean', title: 'Show the ScheduRx credit', initialValue: true}),
+        defineField({name: 'motion', type: 'boolean', title: 'Gentle animation', initialValue: true}),
+        defineField({
+          name: 'sections',
+          type: 'array',
+          description: 'Drag to change the order.',
+          of: [defineArrayMember({type: 'string'})],
+          options: {list: CAMPAIGN_SECTIONS, sortable: true},
+          initialValue: CAMPAIGN_SECTIONS.map((section) => section.value),
+        }),
+        defineField({
+          name: 'hidden',
+          title: 'Hidden sections',
+          type: 'array',
+          description: 'Care and Visit always show.',
+          of: [defineArrayMember({type: 'string'})],
+          options: {list: CAMPAIGN_SECTIONS.filter((section) => !['care', 'visit'].includes(section.value))},
+        }),
+      ],
+    }),
+    defineField({
+      name: 'booking',
+      type: 'object',
+      group: 'booking',
+      fields: [
+        defineField({name: 'label', type: 'string', initialValue: 'Book a consultation'}),
+        defineField({name: 'mode', type: 'string', initialValue: 'whatsapp', options: radio([{title: 'WhatsApp', value: 'whatsapp'}, {title: 'Web link', value: 'external'}, {title: 'ScheduRx booking', value: 'schedurx'}])}),
+        defineField({name: 'url', type: 'url', hidden: ({parent}) => parent?.mode === 'whatsapp'}),
+        defineField({name: 'phone', type: 'string', description: 'Empty uses the clinic phone.'}),
+        defineField({name: 'secondaryPhone', type: 'string'}),
+        defineField({name: 'whatsapp', type: 'string', description: 'Empty uses the ScheduRx WhatsApp number, which opens this clinic automatically.'}),
+        defineField({name: 'message', type: 'string', title: 'Starting WhatsApp message'}),
+        defineField({name: 'consultationModes', type: 'string'}),
+        defineField({name: 'fee', type: 'string'}),
+        defineField({name: 'currency', type: 'string', initialValue: 'INR'}),
+        defineField({name: 'followUp', type: 'text', rows: 2, title: 'Follow-up policy'}),
+        defineField({name: 'cancellation', type: 'text', rows: 2, title: 'Cancellation policy'}),
+        defineField({name: 'payments', type: 'string', title: 'Payment methods'}),
+        defineField({name: 'privacy', type: 'text', rows: 2, title: 'Privacy note'}),
+        defineField({name: 'contactPolicy', type: 'text', rows: 2}),
+      ],
+    }),
+    defineField({
+      name: 'trust',
+      type: 'object',
+      group: 'trust',
+      description: 'Reviews themselves are Testimonials. This is the overall rating and any published figures.',
+      fields: [
+        defineField({name: 'rating', type: 'string'}),
+        defineField({name: 'count', type: 'string', title: 'Number of reviews'}),
+        defineField({name: 'source', type: 'url', title: 'Where the rating comes from'}),
+        defineField({name: 'retrieved', type: 'date', title: 'Date checked'}),
+        defineField({name: 'rights', type: 'boolean', title: 'We have the right to show this', initialValue: false}),
+        defineField({
+          name: 'statistics',
+          type: 'array',
+          of: [
+            defineArrayMember({
+              type: 'object',
+              name: 'statistic',
+              fields: [
+                defineField({name: 'label', type: 'string', validation: (rule) => rule.required()}),
+                defineField({name: 'value', type: 'string', validation: (rule) => rule.required()}),
+                defineField({name: 'source', type: 'string'}),
+                defineField({name: 'date', type: 'date'}),
+              ],
+              preview: {select: {title: 'label', subtitle: 'value'}},
+            }),
+          ],
+        }),
       ],
     }),
     defineField({name: 'navigation', type: 'array', group: 'navigation', of: [defineArrayMember({type: 'link'})], validation: (rule) => rule.max(8)}),
     defineField({name: 'footerLinks', type: 'array', group: 'navigation', of: [defineArrayMember({type: 'link'})]}),
     defineField({name: 'footerNote', type: 'text', rows: 2, group: 'navigation'}),
     defineField({name: 'seo', title: 'SEO defaults', type: 'seo', group: 'search'}),
+    defineField({
+      name: 'search',
+      title: 'Search presence',
+      type: 'object',
+      group: 'search',
+      fields: [
+        defineField({name: 'canonical', type: 'url', title: 'Main web address'}),
+        defineField({name: 'verificationEmail', type: 'string', validation: (rule) => rule.email()}),
+        defineField({name: 'businessProfile', type: 'url', title: 'Google Business Profile'}),
+        defineField({name: 'businessVerified', type: 'boolean', initialValue: false}),
+        defineField({name: 'serviceAreas', type: 'string'}),
+        defineField({name: 'socialTitle', type: 'string'}),
+        defineField({name: 'socialDescription', type: 'text', rows: 2}),
+        defineField({name: 'oldUrls', type: 'text', rows: 2, title: 'Old web addresses'}),
+        defineField({name: 'otherLanguages', type: 'string'}),
+        defineField({name: 'analytics', type: 'boolean', initialValue: false}),
+      ],
+    }),
+    defineField({
+      name: 'consent',
+      type: 'object',
+      group: 'release',
+      fields: [
+        defineField({name: 'images', type: 'boolean', title: 'We have permission to use these photos', initialValue: false}),
+        defineField({name: 'facts', type: 'boolean', title: 'The clinic approved the published facts', initialValue: false}),
+      ],
+    }),
   ],
-  preview: {select: {title: 'siteName', subtitle: 'slug.current'}},
+  preview: {select: {title: 'siteName', subtitle: 'status'}},
+})
+
+const HOURS_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+export const location = defineType({
+  name: 'location',
+  type: 'document',
+  icon: PinIcon,
+  description: 'A place patients visit. Without one, the site uses the address and hours on the clinic profile.',
+  fields: [
+    clinicField,
+    defineField({name: 'name', type: 'string', validation: (rule) => rule.required()}),
+    defineField({name: 'status', type: 'string', initialValue: 'Primary clinic'}),
+    defineField({name: 'address', type: 'string'}),
+    defineField({name: 'locality', type: 'string'}),
+    defineField({name: 'city', type: 'string'}),
+    defineField({name: 'state', type: 'string'}),
+    defineField({name: 'postcode', type: 'string'}),
+    defineField({name: 'country', type: 'string', initialValue: 'India'}),
+    defineField({name: 'landmark', type: 'string'}),
+    defineField({name: 'entrance', type: 'string'}),
+    defineField({name: 'mapsUrl', type: 'url', title: 'Google Maps link'}),
+    defineField({name: 'placeId', type: 'string'}),
+    defineField({name: 'latitude', type: 'string'}),
+    defineField({name: 'longitude', type: 'string'}),
+    defineField({name: 'phone', type: 'string'}),
+    defineField({name: 'whatsapp', type: 'string'}),
+    defineField({name: 'parking', type: 'string'}),
+    defineField({name: 'lift', type: 'string'}),
+    defineField({name: 'wheelchair', type: 'string'}),
+    defineField({name: 'accessibleToilet', type: 'string'}),
+    defineField({name: 'transport', type: 'string'}),
+    defineField({name: 'payments', type: 'string'}),
+    defineField({name: 'policy', type: 'text', rows: 2, title: 'Visit policy'}),
+    defineField({name: 'holidayExceptions', type: 'text', rows: 2}),
+    defineField({name: 'phoneHours', type: 'string'}),
+    defineField({name: 'timezone', type: 'string', initialValue: 'Asia/Kolkata'}),
+    defineField({name: 'doctors', type: 'array', description: 'Empty means every doctor sees patients here.', of: [defineArrayMember({type: 'reference', to: [{type: 'doctor'}], options: sameClinic})]}),
+    defineField({
+      name: 'hours',
+      type: 'array',
+      description: 'Add two time ranges for split consulting hours.',
+      of: [
+        defineArrayMember({
+          type: 'object',
+          name: 'dayHours',
+          fields: [
+            defineField({name: 'day', type: 'string', options: {list: HOURS_DAYS}, validation: (rule) => rule.required()}),
+            defineField({name: 'closed', type: 'boolean', initialValue: false}),
+            defineField({
+              name: 'slots',
+              type: 'array',
+              hidden: ({parent}) => Boolean(parent?.closed),
+              of: [
+                defineArrayMember({
+                  type: 'object',
+                  name: 'timeRange',
+                  fields: [
+                    defineField({name: 'start', type: 'string', description: '24-hour, such as 09:00.', validation: (rule) => rule.required().regex(/^([01]\d|2[0-3]):[0-5]\d$/)}),
+                    defineField({name: 'end', type: 'string', description: '24-hour, such as 13:00.', validation: (rule) => rule.required().regex(/^([01]\d|2[0-3]):[0-5]\d$/)}),
+                  ],
+                  preview: {select: {title: 'start', subtitle: 'end'}},
+                }),
+              ],
+            }),
+          ],
+          preview: {
+            select: {title: 'day', closed: 'closed', slots: 'slots'},
+            prepare: ({title, closed, slots}: any) => ({title, subtitle: closed ? 'Closed' : (slots ?? []).map((t: any) => `${t.start}-${t.end}`).join(', ')}),
+          },
+        }),
+      ],
+    }),
+  ],
+  preview: {select: {title: 'name', subtitle: 'locality'}},
 })
 
 export const page = defineType({
@@ -110,8 +323,17 @@ export const service = defineType({
     defineField({name: 'category', type: 'string'}),
     defineField({name: 'summary', type: 'text', rows: 2, validation: (rule) => rule.max(240)}),
     defineField({name: 'description', type: 'richText'}),
+    defineField({name: 'suitability', type: 'text', rows: 2, title: 'Who it\'s for'}),
+    defineField({name: 'expectations', type: 'text', rows: 2, title: 'What to expect'}),
+    defineField({name: 'preparation', type: 'text', rows: 2, title: 'How to prepare'}),
+    defineField({name: 'duration', type: 'string'}),
+    defineField({name: 'delivery', type: 'string', description: 'Such as In clinic or Online.'}),
+    defineField({name: 'fee', type: 'string'}),
+    defineField({name: 'currency', type: 'string', initialValue: 'INR'}),
     defineField({name: 'image', type: 'altImage'}),
     defineField({name: 'doctors', type: 'array', of: [defineArrayMember({type: 'reference', to: [{type: 'doctor'}], options: sameClinic})]}),
+    defineField({name: 'locations', type: 'array', of: [defineArrayMember({type: 'reference', to: [{type: 'location'}], options: sameClinic})]}),
+    defineField({name: 'relatedServices', type: 'array', of: [defineArrayMember({type: 'reference', to: [{type: 'service'}], options: sameClinic})]}),
     defineField({name: 'faqs', type: 'array', title: 'FAQs', of: [defineArrayMember({type: 'reference', to: [{type: 'faq'}], options: sameClinic})]}),
     defineField({name: 'seo', type: 'seo'}),
   ],
@@ -128,6 +350,8 @@ export const testimonial = defineType({
     defineField({name: 'displayName', type: 'string', description: 'As the patient agreed, such as "Asha R.".', validation: (rule) => rule.required()}),
     defineField({name: 'quote', type: 'text', rows: 4, validation: (rule) => rule.required().max(600)}),
     defineField({name: 'rating', type: 'number', options: {list: [5, 4, 3, 2, 1]}}),
+    defineField({name: 'source', type: 'string', description: 'Where it came from, such as Google.'}),
+    defineField({name: 'translation', type: 'text', rows: 3, description: 'If the original isn\'t in the site\'s language.'}),
     defineField({name: 'doctor', type: 'reference', to: [{type: 'doctor'}], options: sameClinic}),
     defineField({
       name: 'consent',
@@ -186,6 +410,10 @@ export const article = defineType({
     defineField({name: 'excerpt', type: 'text', rows: 3, validation: (rule) => rule.max(240)}),
     defineField({name: 'mainImage', type: 'altImage'}),
     defineField({name: 'body', type: 'richText', validation: (rule) => rule.required()}),
+    defineField({name: 'reviewer', type: 'string', description: 'The clinician who reviewed this.'}),
+    defineField({name: 'reviewedDate', type: 'date'}),
+    defineField({name: 'references', type: 'text', rows: 3}),
+    defineField({name: 'approved', type: 'boolean', title: 'Approved to publish', initialValue: false}),
     defineField({name: 'seo', type: 'seo'}),
   ],
   preview: {select: {title: 'title', subtitle: 'author.fullName', media: 'mainImage'}},

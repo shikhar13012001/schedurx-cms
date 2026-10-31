@@ -22,6 +22,7 @@ export const qualification = defineType({
   fields: [
     defineField({name: 'degree', type: 'string', validation: (rule) => rule.required()}),
     defineField({name: 'institution', type: 'string'}),
+    defineField({name: 'place', type: 'string'}),
     year('year'),
   ],
   preview: {select: {title: 'degree', subtitle: 'institution'}},
