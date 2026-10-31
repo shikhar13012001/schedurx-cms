@@ -230,6 +230,7 @@ export const location = defineType({
     defineField({name: 'placeId', type: 'string'}),
     defineField({name: 'latitude', type: 'string'}),
     defineField({name: 'longitude', type: 'string'}),
+    defineField({name: 'pinConfirmed', type: 'boolean', title: 'Map pin checked', initialValue: false}),
     defineField({name: 'phone', type: 'string'}),
     defineField({name: 'whatsapp', type: 'string'}),
     defineField({name: 'parking', type: 'string'}),

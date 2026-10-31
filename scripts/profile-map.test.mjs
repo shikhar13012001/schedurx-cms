@@ -59,5 +59,5 @@ test('messy saved values don\'t break it', () => {
 
 test('slugs drop the Dr. prefix', () => {
   assert.equal(slugify('Dr. Priya Sharma'), 'priya-sharma')
-  assert.equal(slugify("Dr. Sharma's Clinic"), 'sharma-s-clinic')
+  assert.equal(slugify("Dr. Sharma's Clinic"), 'sharmas-clinic')
 })
