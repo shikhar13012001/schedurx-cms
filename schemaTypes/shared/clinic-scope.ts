@@ -12,10 +12,10 @@ export const clinicField = defineField({
 
 // Reference pickers only offer content from the same clinic.
 export const sameClinic = {
-  filter: ({document}: {document: {clinic?: {_ref?: string}}}) =>
-    document?.clinic?._ref
-      ? {filter: 'clinic._ref == $clinic', params: {clinic: document.clinic._ref}}
-      : {filter: 'false'},
+  filter: ({document}: any) => {
+    const clinic = document?.clinic?._ref
+    return clinic ? {filter: 'clinic._ref == $clinic', params: {clinic}} : {filter: 'false', params: {}}
+  },
 }
 
 // One of something per clinic, such as website settings or a homepage.

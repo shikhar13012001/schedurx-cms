@@ -53,7 +53,7 @@ test('a clinic copies only its public profile, and blanks clear the old value', 
 test('messy saved values don\'t break it', () => {
   const doc = doctorToSanity({id: 'd', fullName: 'A', qualifications: 'not a list', awards: [null, {name: 'X'}], additionalInfo: null}, 'c')
   assert.deepEqual(doc.qualifications, [])
-  assert.deepEqual(doc.awards, [{_type: 'award', _key: 'award-1', name: 'X'}])
+  assert.deepEqual(doc.awards, [{_type: 'award', _key: 'award-0', name: 'X'}])
   assert.equal(doc.yearsExperience, null)
 })
 
