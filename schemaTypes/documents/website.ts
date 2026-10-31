@@ -126,8 +126,8 @@ export const websiteSettings = defineType({
       group: 'booking',
       fields: [
         defineField({name: 'label', type: 'string', initialValue: 'Book a consultation'}),
-        defineField({name: 'mode', type: 'string', initialValue: 'whatsapp', options: radio([{title: 'WhatsApp', value: 'whatsapp'}, {title: 'Web link', value: 'external'}, {title: 'ScheduRx booking', value: 'schedurx'}])}),
-        defineField({name: 'url', type: 'url', hidden: ({parent}) => parent?.mode === 'whatsapp'}),
+        defineField({name: 'mode', type: 'string', initialValue: 'schedurx', description: 'ScheduRx booking opens the booking page with this clinic and doctor already chosen.', options: radio([{title: 'ScheduRx booking', value: 'schedurx'}, {title: 'WhatsApp', value: 'whatsapp'}, {title: 'Another web link', value: 'external'}])}),
+        defineField({name: 'url', type: 'url', hidden: ({parent}) => parent?.mode !== 'external'}),
         defineField({name: 'phone', type: 'string', description: 'Empty uses the clinic phone.'}),
         defineField({name: 'secondaryPhone', type: 'string'}),
         defineField({name: 'whatsapp', type: 'string', description: 'Empty uses the ScheduRx WhatsApp number, which opens this clinic automatically.'}),

@@ -1,13 +1,13 @@
 import {defineArrayMember, defineField, defineType} from 'sanity'
 import {HomeIcon} from '@sanity/icons/Home'
 import {UserIcon} from '@sanity/icons/User'
-import {clinicField, syncedFrom} from '../shared/clinic-scope'
+import {clinicField} from '../shared/clinic-scope'
 
 const stringList = (name: string, extra: Record<string, unknown> = {}) =>
   defineField({name, type: 'array', of: [defineArrayMember({type: 'string'})], options: {layout: 'tags'}, ...extra})
 
 const groups = [
-  {name: 'profile', title: 'From ScheduRx', default: true},
+  {name: 'profile', title: 'Profile', default: true},
   {name: 'website', title: 'Website only'},
 ]
 
@@ -22,7 +22,8 @@ export const clinic = defineType({
       title: 'ScheduRx clinic ID',
       type: 'string',
       group: 'profile',
-      description: 'Links this to the clinic in ScheduRx. Once set, the "From ScheduRx" fields update from the dashboard and can\'t be edited here.',
+      readOnly: true,
+      description: 'Connects this to appointments and payments in ScheduRx. Set automatically.',
     }),
     ...[
       defineField({name: 'name', type: 'string', validation: (rule) => rule.required()}),
@@ -41,10 +42,10 @@ export const clinic = defineType({
       defineField({name: 'googleReviewUrl', type: 'url', title: 'Google review link'}),
       stringList('facilities'),
       stringList('paymentMethods'),
-      stringList('workingDays', {description: 'Mon, Tue, Wed…'}),
-      defineField({name: 'openingHour', type: 'number', validation: (rule) => rule.integer().min(0).max(24)}),
-      defineField({name: 'closingHour', type: 'number', validation: (rule) => rule.integer().min(0).max(24)}),
-    ].map((field) => ({...field, group: 'profile', ...syncedFrom('scheduRxClinicId')})),
+      stringList('workingDays', {readOnly: true, description: 'These hours decide when appointments can be booked, so they\'re changed in the ScheduRx dashboard. The hours shown on the website are under Locations and hours.'}),
+      defineField({name: 'openingHour', type: 'number', readOnly: true}),
+      defineField({name: 'closingHour', type: 'number', readOnly: true}),
+    ].map((field) => ({...field, group: 'profile'})),
     defineField({name: 'legalName', type: 'string', group: 'website'}),
     defineField({name: 'shortName', type: 'string', group: 'website'}),
     defineField({name: 'tagline', type: 'string', group: 'website'}),
@@ -70,7 +71,8 @@ export const doctor = defineType({
       title: 'ScheduRx doctor ID',
       type: 'string',
       group: 'profile',
-      description: 'Links this to the doctor in ScheduRx. Once set, the "From ScheduRx" fields update from the dashboard and can\'t be edited here.',
+      readOnly: true,
+      description: 'Connects this to appointments and payments in ScheduRx. Set automatically.',
     }),
     ...[
       defineField({name: 'fullName', type: 'string', validation: (rule) => rule.required()}),
@@ -92,7 +94,7 @@ export const doctor = defineType({
         of: [defineArrayMember({type: 'string'})],
         options: {list: ['In-clinic', 'Online', 'Home visit']},
       }),
-    ].map((field) => ({...field, group: 'profile', ...syncedFrom('scheduRxDoctorId')})),
+    ].map((field) => ({...field, group: 'profile'})),
     defineField({
       name: 'slug',
       type: 'slug',

@@ -80,6 +80,22 @@ test('WhatsApp booking opens at this clinic through the shared number', () => {
   assert.equal(booking.message, 'CLINIC poc-clinic-001 - Hi')
 })
 
+test('booking opens at this clinic with the doctor chosen', () => {
+  const site = sampleSite()
+  site.clinic.scheduRxClinicId = 'poc-clinic-001'
+  site.doctors[0].scheduRxDoctorId = 'doc-1'
+  site.booking = {}
+  const practice = practiceFromSanity(site, {...env, bookingBaseUrl: 'https://book.schedurx.com/'})
+  assert.equal(practice.booking.mode, 'schedurx')
+  assert.equal(practice.booking.url, 'https://book.schedurx.com/book/poc-clinic-001')
+  assert.equal(practice.doctors[0].bookingId, 'doc-1')
+  const html = renderSite(practice)
+  assert.ok(html.includes('"bookingId":"doc-1"'))
+  assert.ok(html.includes('id="booking-destination"'))
+  site.booking = {mode: 'whatsapp'}
+  assert.equal(practiceFromSanity(site, {...env, bookingBaseUrl: 'https://book.schedurx.com'}).booking.url, '', 'a clinic can choose WhatsApp instead')
+})
+
 test('portrait: uploaded first, then the dashboard photo, with its crop', () => {
   const site = sampleSite()
   site.doctors[0].photos = [{url: 'https://x.test/synced.jpg', isPrimary: true}]

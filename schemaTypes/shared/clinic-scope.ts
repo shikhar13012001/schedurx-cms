@@ -30,8 +30,3 @@ export function onePerClinic(type: string, extra = '', extraParams: Record<strin
     return others === 0 || 'This clinic already has one of these.'
   }
 }
-
-// A field that comes from the ScheduRx dashboard once the document is linked to it.
-export const syncedFrom = (idField: string) => ({
-  readOnly: ({document}: {document?: Record<string, unknown>}) => Boolean(document?.[idField]),
-})

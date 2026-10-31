@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "validate": "sanity schema validate",
     "test": "node --test scripts/profile-map.test.mjs",
-    "sync": "node scripts/sync-from-schedurx.mjs",
+    "migrate": "node scripts/migrate-profiles.mjs",
     "seed": "sanity dataset import seed/sample-site.ndjson production --replace"
   },
   "dependencies": {

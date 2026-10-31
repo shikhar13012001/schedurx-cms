@@ -1,4 +1,5 @@
-import type {StructureBuilder, StructureResolver} from 'sanity/structure'
+import type {DefaultDocumentNodeResolver, StructureBuilder, StructureResolver} from 'sanity/structure'
+import {SitePreview} from '../preview/site-preview'
 import {HomeIcon} from '@sanity/icons/Home'
 
 const SECTIONS: [string, string][] = [
@@ -54,6 +55,10 @@ export const structure: StructureResolver = (S) =>
             .child((clinicId) => clinicContent(S, clinicId)),
         ),
     ])
+
+// Website settings open with a live preview of the whole site, drafts included.
+export const defaultDocumentNode: DefaultDocumentNodeResolver = (S, {schemaType}) =>
+  schemaType === 'websiteSettings' ? S.document().views([S.view.form(), S.view.component(SitePreview).title('Preview')]) : S.document()
 
 export const clinicTemplates = SECTIONS.map(([type, title]) => ({
   id: `${type}-for-clinic`,

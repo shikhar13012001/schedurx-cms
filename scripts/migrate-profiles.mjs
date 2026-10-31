@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-// Copies clinic and doctor profiles from ScheduRx into Sanity. Website content written
-// in the Studio is never touched. Safe to re-run.
+// Moves existing clinic and doctor profiles from the ScheduRx tables into Sanity. Run
+// once: after that, Sanity holds this content and the tables follow it. Anything
+// already in Sanity stays as it is, so re-running is safe.
 //
-//   node scripts/sync-from-schedurx.mjs                    # show what would change
-//   node scripts/sync-from-schedurx.mjs --apply
-//   node scripts/sync-from-schedurx.mjs --apply --clinic=<id>
+//   node scripts/migrate-profiles.mjs                    # show what would change
+//   node scripts/migrate-profiles.mjs --apply
+//   node scripts/migrate-profiles.mjs --apply --clinic=<id>
 
 import 'dotenv/config'
 import {createClient as createSanity} from '@sanity/client'
@@ -38,7 +39,9 @@ async function upsert(type, idField, fields, onCreate = {}) {
     return existing ?? `new-${fields[idField]}`
   }
   if (existing) {
-    await sanity.patch(existing).set(fields).commit()
+    // Blank values would only clutter the document.
+    const filled = Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== null))
+    await sanity.patch(existing).setIfMissing(filled).commit()
     return existing
   }
   return (await sanity.create({_type: type, ...fields, ...onCreate}))._id

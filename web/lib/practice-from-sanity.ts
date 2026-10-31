@@ -6,7 +6,7 @@ import {blankPractice, type Practice} from './campaign/model'
 
 type Doc = Record<string, any>
 export type SiteDocs = Doc & {clinic: Doc; doctors: Doc[]; services: Doc[]; locations: Doc[]; faqs: Doc[]; testimonials: Doc[]; articles: Doc[]}
-export type SiteEnv = {projectId: string; dataset: string; whatsappNumber?: string}
+export type SiteEnv = {projectId: string; dataset: string; whatsappNumber?: string; bookingBaseUrl?: string}
 
 const DAYS: Record<string, string> = {Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday'}
 const text = (value: unknown) => (value === null || value === undefined ? '' : String(value))
@@ -77,6 +77,8 @@ function mapDoctor(doc: Doc, clinic: Doc) {
   const degrees = (doc.qualifications ?? []).map((q: Doc) => q.degree).filter(Boolean)
   return {
     id: doc._id,
+    // What the booking link carries, so the doctor is already chosen there.
+    bookingId: doc.scheduRxDoctorId,
     title: doc.title ?? '',
     name: String(doc.fullName ?? '').replace(doc.title ? /^dr\.?\s+/i : /$^/, ''),
     shortName: text(doc.shortName),
@@ -165,10 +167,13 @@ export function practiceFromSanity(site: SiteDocs, env: SiteEnv): Practice {
   // Empty uses the shared WhatsApp number with the clinic's code, the same way its
   // QR code does, so the conversation opens at the right clinic.
   const codeMessage = clinic.scheduRxClinicId ? `CLINIC ${clinic.scheduRxClinicId} - Hi` : ''
+  // The booking page opens at this clinic. The renderer adds the doctor to the link.
+  const bookingPage = clinic.scheduRxClinicId && env.bookingBaseUrl ? `${env.bookingBaseUrl.replace(/\/$/, '')}/book/${encodeURIComponent(clinic.scheduRxClinicId)}` : ''
+  const bookingMode = booking.mode || (bookingPage ? 'schedurx' : 'whatsapp')
   practice.booking = {
     label: booking.label || 'Book a consultation',
-    mode: booking.mode || 'whatsapp',
-    url: text(booking.url),
+    mode: bookingMode,
+    url: bookingMode === 'schedurx' ? bookingPage : text(booking.url),
     phone: text(booking.phone ?? clinic.phone),
     secondaryPhone: text(booking.secondaryPhone),
     whatsapp: text(booking.whatsapp ?? env.whatsappNumber),
