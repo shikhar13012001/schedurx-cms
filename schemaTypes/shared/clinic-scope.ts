@@ -1,0 +1,37 @@
+import {defineField} from 'sanity'
+
+// Every piece of website content belongs to exactly one clinic.
+export const clinicField = defineField({
+  name: 'clinic',
+  type: 'reference',
+  to: [{type: 'clinic'}],
+  description: 'The clinic whose website this belongs to.',
+  validation: (rule) => rule.required(),
+  options: {disableNew: true},
+})
+
+// Reference pickers only offer content from the same clinic.
+export const sameClinic = {
+  filter: ({document}: {document: {clinic?: {_ref?: string}}}) =>
+    document?.clinic?._ref
+      ? {filter: 'clinic._ref == $clinic', params: {clinic: document.clinic._ref}}
+      : {filter: 'false'},
+}
+
+// One of something per clinic, such as website settings or a homepage.
+export function onePerClinic(type: string, extra = '', extraParams: Record<string, unknown> = {}) {
+  return async (clinic: {_ref?: string} | undefined, context: any) => {
+    if (!clinic?._ref) return true
+    const id = String(context.document?._id ?? '').replace(/^drafts\./, '')
+    const others = await context.getClient({apiVersion: '2026-02-01'}).fetch(
+      `count(*[_type == $type && clinic._ref == $clinic && !(_id in [$id, "drafts." + $id]) ${extra}])`,
+      {type, clinic: clinic._ref, id, ...extraParams},
+    )
+    return others === 0 || 'This clinic already has one of these.'
+  }
+}
+
+// A field that comes from the ScheduRx dashboard once the document is linked to it.
+export const syncedFrom = (idField: string) => ({
+  readOnly: ({document}: {document?: Record<string, unknown>}) => Boolean(document?.[idField]),
+})
